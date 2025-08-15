@@ -77,7 +77,7 @@ else
    echo ""
    echo ""
 fi
-   wget https://github.com/speedy005/ServiceScanUpdates/archive/refs/heads/main.tar.gz
+   wget https://github.com/speedy005/ServiceScanUpdates/archive/refs/heads/main.tar.gz || { echo "Download failed"; exit 1; }
    tar -xzf main.tar.gz
    cp -r 'ServiceScanUpdates-main/usr' '/'
 set +e
