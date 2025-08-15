@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 from __future__ import print_function
 
 from Plugins.Plugin import PluginDescriptor
@@ -13,7 +13,7 @@ except ImportError:
 from Tools.Directories import resolveFilename, SCOPE_CONFIG
 from . import _
 
-from .SSULameDBParser import SSULameDBParser
+from .speedy005SSULameDBParser import speedy005SSULameDBParser
 
 import sys
 
@@ -45,12 +45,12 @@ def ServiceScan_execBegin(self):
         flags = self.scanList[self.run]["flags"]
     except (AttributeError, KeyError, IndexError, TypeError):
         flags = "N/A"
-    print("[ServiceScanUpdates] ServiceScan_execBegin [%s]" % str(flags))
+    print("[speedy005ServiceScanUpdates] ServiceScan_execBegin [%s]" % str(flags))
 
     global preScanDB
-    if not preScanDB and (config.plugins.servicescanupdates.add_new_tv_services.value or
-                          config.plugins.servicescanupdates.add_new_radio_services.value):
-        preScanDB = SSULameDBParser(resolveFilename(SCOPE_CONFIG) + "/lamedb")
+    if not preScanDB and (config.plugins.speedy005servicescanupdates.add_new_tv_services.value or
+                          config.plugins.speedy005servicescanupdates.add_new_radio_services.value):
+        preScanDB = speedy005SSULameDBParser(resolveFilename(SCOPE_CONFIG) + "/lamedb")
     baseServiceScan_execBegin(self)
 
 
@@ -63,12 +63,12 @@ def ServiceScan_execEnd(self, onClose=True):
 
     # Sicherstellen, dass self.state existiert
     state_val = getattr(self, "state", -1)
-    print("[ServiceScanUpdates] ServiceScan_execEnd (%d) [%s]" % (state_val, str(flags)))
+    print("[speedy005ServiceScanUpdates] ServiceScan_execEnd (%d) [%s]" % (state_val, str(flags)))
 
     # Auch hier getattr nutzen, um Absturz zu vermeiden
     if getattr(self, "state", None) == getattr(self, "DONE", None):
-        if config.plugins.servicescanupdates.add_new_tv_services.value or config.plugins.servicescanupdates.add_new_radio_services.value:
-            postScanDB = SSULameDBParser(resolveFilename(SCOPE_CONFIG) + "/lamedb")
+        if config.plugins.speedy005servicescanupdates.add_new_tv_services.value or config.plugins.servicescanupdates.add_new_radio_services.value:
+            postScanDB = speedy005SSULameDBParser(resolveFilename(SCOPE_CONFIG) + "/lamedb")
             postScanServices = postScanDB.getServices()
             safeClose(postScanDB)  # <- Hier statt direktem postScanDB.close()
 
@@ -82,19 +82,19 @@ def ServiceScan_execEnd(self, onClose=True):
                 # Neue Services finden
                 for service_ref in postScanServices.keys():
                     if not dictHasKey(preScanServices, service_ref):
-                        if SSULameDBParser.isVideoService(service_ref):
+                        if speedy005SSULameDBParser.isVideoService(service_ref):
                             newTVServices.append(service_ref)
-                        elif SSULameDBParser.isRadioService(service_ref):
+                        elif speedy005SSULameDBParser.isRadioService(service_ref):
                             newRadioServices.append(service_ref)
 
-                from .SSUBouquetHandler import SSUBouquetHandler
-                bouquet_handler = SSUBouquetHandler()
+                from speedy005SSUBouquetHandler import speedy005SSUBouquetHandler
+                bouquet_handler = speedy005SSUBouquetHandler()
 
                 # TV-Services
-                print("[ServiceScanUpdates] Found %d new TV services" % len(newTVServices))
-                if config.plugins.servicescanupdates.add_new_tv_services.value and len(newTVServices) > 0:
+                print("[speedy005ServiceScanUpdates] Found %d new TV services" % len(newTVServices))
+                if config.plugins.speedy005servicescanupdates.add_new_tv_services.value and len(newTVServices) > 0:
                     bouquet_handler.addToIndexBouquet("tv")
-                    if config.plugins.servicescanupdates.clear_bouquet.value:
+                    if config.plugins.speedy005servicescanupdates.clear_bouquet.value:
                         bouquet_handler.createSSUBouquet(newTVServices, "tv")
                     else:
                         if bouquet_handler.doesSSUBouquetFileExists("tv"):
@@ -103,10 +103,10 @@ def ServiceScan_execEnd(self, onClose=True):
                             bouquet_handler.createSSUBouquet(newTVServices, "tv")
 
                 # Radio-Services
-                print("[ServiceScanUpdates] Found %d new radio services" % len(newRadioServices))
-                if config.plugins.servicescanupdates.add_new_radio_services.value and len(newRadioServices) > 0:
+                print("[speedy005ServiceScanUpdates] Found %d new radio services" % len(newRadioServices))
+                if config.plugins.speedy005servicescanupdates.add_new_radio_services.value and len(newRadioServices) > 0:
                     bouquet_handler.addToIndexBouquet("radio")
-                    if config.plugins.servicescanupdates.clear_bouquet.value:
+                    if config.plugins.speedy005servicescanupdates.clear_bouquet.value:
                         bouquet_handler.createSSUBouquet(newRadioServices, "radio")
                     else:
                         if bouquet_handler.doesSSUBouquetFileExists("radio"):
@@ -123,7 +123,7 @@ def ServiceScan_execEnd(self, onClose=True):
 
 
 # def ServiceScan_scanStatusChanged(self):
-#     #print("[ServiceScanUpdates] ServiceScan_scanStatusChanged (%d)" % self.state)
+#     #print("[speedy005ServiceScanUpdates] ServiceScan_scanStatusChanged (%d)" % self.state)
 #     baseServiceScan_scanStatusChanged(self)
 
 
@@ -148,13 +148,13 @@ def autostart(reason, **kwargs):
 
 
 def SSUMain(session, **kwargs):
-    from .SSUSetupScreen import SSUSetupScreen
-    session.open(SSUSetupScreen)
+    from .speedy005SSUSetupScreen import speedy005SSUSetupScreen
+    session.open(speedy005SSUSetupScreen)
 
 
 def SSUMenuItem(menuid, **kwargs):
     if menuid == "scan":
-        return [("Service Scan Updates " + _("Setup"), SSUMain, "servicescanupdates", None)]
+        return [("speedy005 Service Scan Updates " + _("Setup"), SSUMain, "servicescanupdates", None)]
     else:
         return []
 
@@ -163,7 +163,7 @@ def SSUMenuItem(menuid, **kwargs):
 
 def menu(menuid, **kwargs):
     if menuid == "mainmenu":
-        return [(_("Service Scan Updates") + " " + _("Setup"), SSUMain, "servicescanupdates_mainmenu", 50)]
+        return [(_("speedy005 Service Scan Updates") + " " + _("Setup"), SSUMain, "servicescanupdates_mainmenu", 50)]
     return []
 
 
@@ -177,7 +177,7 @@ def Plugins(**kwargs):
 
         # Plugin-Menü
         PluginDescriptor(
-            name="Service Scan Updates " + _("Setup"),
+            name="speedy005 Service Scan Updates " + _("Setup"),
             description=_("Updates during service scan"),
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="plugin.png",
@@ -186,7 +186,7 @@ def Plugins(**kwargs):
 
         # Erweiterungen (Extensions-Menü)
         PluginDescriptor(
-            name="Service Scan Updates " + _("Setup"),
+            name="speedy005 Service Scan Updates " + _("Setup"),
             description=_("Updates during service scan"),
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             icon="plugin.png",
