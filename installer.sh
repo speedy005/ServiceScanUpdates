@@ -1,17 +1,17 @@
 #!/bin/bash
-##setup command=wget -q "--no-check-certificate" https://raw.githubusercontent.com/ciefp/CiefpOscamEditor/main/installer.sh -O - | /bin/sh
+##setup command=wget -q "--no-check-certificate" https://raw.githubusercontent.com/speedy005/ServiceScanUpdates/main/installer.sh -O - | /bin/sh
 
 ######### Only This 2 lines to edit with new version ######
 version='1.5'
 changelog='\nFix little bugs\nUpdated Picons List'
 ##############################################################
 
-TMPPATH=/tmp/CiefpOscamEditor
+TMPPATH=/tmp/ServiceScanUpdates
 
 if [ ! -d /usr/lib64 ]; then
-	PLUGINPATH=/usr/lib/enigma2/python/Plugins/Extensions/CiefpOscamEditor
+	PLUGINPATH=/usr/lib/enigma2/python/Plugins/Extensions/ServiceScanUpdates
 else
-	PLUGINPATH=/usr/lib64/enigma2/python/Plugins/Extensions/CiefpOscamEditor
+	PLUGINPATH=/usr/lib64/enigma2/python/Plugins/Extensions/ServiceScanUpdates
 fi
 
 # check depends packges
@@ -77,9 +77,9 @@ else
    echo ""
    echo ""
 fi
-   wget https://github.com/ciefp/CiefpOscamEditor/archive/refs/heads/main.tar.gz
+   wget https://github.com/speedy005/ServiceScanUpdates/archive/refs/heads/main.tar.gz
    tar -xzf main.tar.gz
-   cp -r 'CiefpOscamEditor-main/usr' '/'
+   cp -r 'ServiceScanUpdates-main/usr' '/'
 set +e
 cd
 sleep 2
@@ -95,10 +95,10 @@ sync
 echo ""
 echo ""
 echo "#########################################################"
-echo "#          CiefpOscamEditor INSTALLED SUCCESSFULLY      #"
-echo "#                  developed by ciefp                   #"
-echo "#                   Big thanks Qu4k3                    #"
-echo "#                  .::ciefpsettings::.                  #"
+echo "#          ServiceScanUpdates INSTALLED SUCCESSFULLY      #"
+echo "#                  developed by speedy005                   #"
+echo "#                   Big thanks speedy005                    #"
+echo "#                  .::ServiceScanUpdates::.                  #"
 echo "#                  https://Sat-Club.EU                  #"
 echo "#########################################################"
 echo "#           your Device will RESTART Now                #"
