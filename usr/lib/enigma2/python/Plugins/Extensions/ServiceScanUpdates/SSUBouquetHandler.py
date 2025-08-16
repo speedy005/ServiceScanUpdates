@@ -104,4 +104,4 @@ class SSUBouquetHandler:
             f.writelines(lines)
 
         time.sleep(0.2)
-        self.reloadBouquets()
+        self.reloadBouquets() 
