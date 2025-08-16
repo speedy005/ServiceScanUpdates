@@ -163,7 +163,7 @@ def SSUMenuItem(menuid, **kwargs):
 
 def menu(menuid, **kwargs):
     if menuid == "mainmenu":
-        return [(_("Service Scan Updates") + " " + _("Setup"), SSUMain, "servicescanupdates_mainmenu", 50)]
+        return [(_("ServiceScanUpdates") + " " + _("Setup"), SSUMain, "servicescanupdates_mainmenu", 50)]
     return []
 
 
@@ -177,7 +177,7 @@ def Plugins(**kwargs):
 
         # Plugin-Menü
         PluginDescriptor(
-            name="Service Scan Updates " + _("Setup"),
+            name="ServiceScanUpdates " + _("Setup"),  # Updated name
             description=_("Updates during service scan"),
             where=PluginDescriptor.WHERE_PLUGINMENU,
             icon="plugin.png",
@@ -186,7 +186,7 @@ def Plugins(**kwargs):
 
         # Erweiterungen (Extensions-Menü)
         PluginDescriptor(
-            name="Service Scan Updates " + _("Setup"),
+            name="ServiceScanUpdates " + _("Setup"),  # Updated name
             description=_("Updates during service scan"),
             where=PluginDescriptor.WHERE_EXTENSIONSMENU,
             icon="plugin.png",
