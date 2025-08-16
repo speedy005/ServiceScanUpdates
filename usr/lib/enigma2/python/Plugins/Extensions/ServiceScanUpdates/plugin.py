@@ -154,7 +154,7 @@ def SSUMain(session, **kwargs):
 
 def SSUMenuItem(menuid, **kwargs):
     if menuid == "scan":
-        return [("Service Scan Updates " + _("Setup"), SSUMain, "servicescanupdates", None)]
+        return [("ServiceScanUpdates " + _("Setup"), SSUMain, "servicescanupdates", None)]
     else:
         return []
 
