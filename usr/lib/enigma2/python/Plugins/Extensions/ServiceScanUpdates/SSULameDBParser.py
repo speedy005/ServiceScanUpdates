@@ -1,149 +1,155 @@
 # -*- coding: utf-8 -*-
-
-# --- Standardbibliothek ---
-import os
 import sys
+import re
+from enigma import eDVBDB, eServiceReference
 
-# --- Plugin-Pfad dynamisch ermitteln (Extensions oder SystemPlugins) ---
-plugin_path = None
-for base in (
-    "/usr/lib/enigma2/python/Plugins/Extensions",
-    "/usr/lib/enigma2/python/Plugins/SystemPlugins"
-):
-    possible = os.path.join(base, "ServiceScanUpdates")
-    if os.path.isdir(possible):
-        plugin_path = possible
-        break
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
 
-if plugin_path and plugin_path not in sys.path:
-    sys.path.insert(0, plugin_path)
+FLAG_SERVICE_NEW_FOUND = 64
 
-# --- Enigma2-Imports ---
-from Screens.Screen import Screen
-from Components.ConfigList import ConfigListScreen
-from Components.ActionMap import ActionMap
-from Components.config import config, getConfigListEntry
-from Components.Button import Button
-from Components.Label import Label
-from Components.ScrollLabel import ScrollLabel
-from enigma import getDesktop
+class SSULameDBParser:
+    def __init__(self, filename):
+        self.filename = filename
+        self.version = 4
+        self.services = {}
+        self.transponders = {}
+        self.parse(self.load())
 
-# --- Lokale Imports ---
-from . import _  # Übersetzungsfunktion aus __init__.py laden
+    def load(self):
+        try:
+            print("[ServiceScanUpdates] Reading file: " + self.filename)
+            import codecs
+            with codecs.open(self.filename, "r", encoding="utf-8", errors="ignore") as f:
+                lines = f.readlines()
+            if lines and "/3/" in lines[0]:
+                self.version = 3
+            elif lines and "/4/" in lines[0]:
+                self.version = 4
+            else:
+                print("[ServiceScanUpdates] Unsupported lamedb version")
+                lines = None
+            return lines
+        except Exception as e:
+            print("[ServiceScanUpdates] Exception reading lamedb: " + str(e))
+            return None
 
-# --- Version ---
-version = "3.2"
-sz_w = getDesktop(0).size().width()
+    def parse(self, lines):
+        if not lines:
+            return
 
+        reading_transponders = False
+        reading_services = False
+        tmp = []
+        self.transponders.clear()
+        self.services.clear()
 
-class SSUSetupScreen(ConfigListScreen, Screen):
-    if sz_w == 1920:
-        skin = """
-        <screen name="SSUSetupScreen" position="center,170" size="1200,820" title="Service Scan Updates">
-            <ePixmap pixmap="skin_default/buttons/red.png" position="10,5" size="295,70" scale="stretch" alphatest="on" />
-            <ePixmap pixmap="skin_default/buttons/green.png" position="305,5" size="295,70" scale="stretch" alphatest="on" />
-            <eLabel text="HELP" position="1110,30" size="80,35" backgroundColor="#777777" valign="center" halign="center" font="Regular;24"/>
-            <widget name="key_red" position="10,5" zPosition="1" size="295,70" font="Regular;30" halign="center" valign="center" backgroundColor="#9f1313" transparent="1" shadowColor="black" shadowOffset="-2,-2" />
-            <widget name="key_green" position="310,5" zPosition="1" size="300,70" font="Regular;30" halign="center" valign="center" backgroundColor="#1f771f" transparent="1" shadowColor="black" shadowOffset="-2,-2" />
-            <widget name="config" position="10,90" itemHeight="35" size="1180,540" enableWrapAround="1" scrollbarMode="showOnDemand" />
-            <ePixmap pixmap="skin_default/div-h.png" position="10,650" zPosition="2" size="1180,2" />
-            <widget name="help" position="10,655" size="1180,145" font="Regular;32" />
-        </screen>"""
-    else:
-        skin = """
-        <screen name="SISettingsScreen" position="center,120" size="800,530" title="Service Scan Updates">
-            <ePixmap pixmap="skin_default/buttons/red.png" position="0,0" size="200,40" scale="stretch" alphatest="on" />
-            <ePixmap pixmap="skin_default/buttons/green.png" position="200,0" size="200,40" scale="stretch" alphatest="on" />
-            <eLabel text="HELP" position="735,15" size="60,25" backgroundColor="#777777" valign="center" halign="center" font="Regular;18"/>
-            <widget name="key_red" position="0,0" zPosition="1" size="200,40" font="Regular;22" halign="center" valign="center" backgroundColor="#9f1313" transparent="1" shadowColor="black" shadowOffset="-2,-2" />
-            <widget name="key_green" position="200,0" zPosition="1" size="200,40" font="Regular;22" halign="center" valign="center" backgroundColor="#1f771f" transparent="1" shadowColor="black" shadowOffset="-2,-2" />
-            <widget name="config" position="5,50" itemHeight="30" size="790,390" enableWrapAround="1" scrollbarMode="showOnDemand" />
-            <ePixmap pixmap="skin_default/div-h.png" position="0,445" zPosition="2" size="800,2" />
-            <widget name="help" position="5,450" size="790,65" font="Regular;22" />
-        </screen>"""
+        print("[ServiceScanUpdates] Parsing content of file: " + self.filename)
+        for line in lines:
+            line = line.rstrip('\n')
+            if PY2:
+                line = line.encode('utf-8')
 
-    def __init__(self, session):
-        Screen.__init__(self, session)
-        self.session = session
-        self.list = []
-        ConfigListScreen.__init__(self, self.list, session=session)
+            if line == "end":
+                reading_transponders = False
+                reading_services = False
+                tmp = []
+                continue
 
-        self["key_red"] = Button(_("Cancel"))
-        self["key_green"] = Button(_("Save"))
-        self["help"] = Label("")
+            if line == "transponders":
+                reading_transponders = True
+                tmp = []
+                continue
 
-        self["setupActions"] = ActionMap(
-            ["SetupActions", "ColorActions", "HelpActions"],
-            {
-                "red": self.keyCancel,
-                "green": self.keySave,
-                "save": self.keySave,
-                "cancel": self.keyCancel,
-                "ok": self.keySave,
-                "displayHelp": self.help,
-            },
-            -2
-        )
+            if line == "services":
+                reading_services = True
+                tmp = []
+                continue
 
-        self.onLayoutFinish.append(self.layoutFinished)
-        self["config"].onSelectionChanged.append(self.updateHelp)
+            if reading_transponders:
+                if line == "/":
+                    self.transponders[tmp[0]] = tmp[1].replace("\t", "").replace(" ", ":")
+                    tmp = []
+                else:
+                    tmp.append(line)
 
-    def layoutFinished(self):
-        self.populateList()
+            elif reading_services:
+                if line.startswith("p:"):
+                    parts = tmp[0].split(':')
+                    if len(parts) not in (6, 7):
+                        tmp = []
+                        continue
 
-    def populateList(self):
-        self.list = [
-            getConfigListEntry(_("Add new TV services"), config.plugins.servicescanupdates.add_new_tv_services, _("Create 'Service Scan Updates' bouquet for new TV services?")),
-            getConfigListEntry(_("Add new radio services"), config.plugins.servicescanupdates.add_new_radio_services, _("Create 'Service Scan Updates' bouquet for new radio services?")),
-            getConfigListEntry(_("Clear bouquet at each search"), config.plugins.servicescanupdates.clear_bouquet, _("Empty the 'Service Scan Updates' bouquet on every scan, otherwise the new services will be appended?")),
-        ]
-        self["config"].list = self.list
-        self["config"].l.setList(self.list)
+                    if len(parts) == 6:
+                        service_id, dvb_namespace, transport_stream_id, original_network_id, service_type, service_number = parts
+                    else:
+                        service_id, dvb_namespace, transport_stream_id, original_network_id, service_type, service_number, source_id = parts
 
-    def updateHelp(self):
-        cur = self["config"].getCurrent()
-        if cur:
-            self["help"].text = cur[2]
+                    transponder = "%s:%s:%s" % (dvb_namespace, transport_stream_id, original_network_id)
 
-    def help(self):
-        self.session.open(SSUHelpScreen)
+                    service_id = re.sub("^0+", "", service_id)
+                    dvb_namespace = re.sub("^0+", "", dvb_namespace)
+                    transport_stream_id = re.sub("^0+", "", transport_stream_id)
+                    original_network_id = re.sub("^0+", "", original_network_id)
+                    service_type = format(int(service_type), "x")
+                    service_ref = "1:0:%s:%s:%s:%s:%s:0:0:0:" % (service_type.upper(), service_id.upper(), transport_stream_id.upper(), original_network_id.upper(), dvb_namespace.upper())
 
+                    self.services[service_ref] = {
+                        'service_id': service_id,
+                        'dvb_namespace': dvb_namespace,
+                        'transport_stream_id': transport_stream_id,
+                        'original_network_id': original_network_id,
+                        'service_type': service_type,
+                        'service_number': service_number,
+                        'transponder': transponder,
+                        'service_name': tmp[1]
+                    }
 
-class SSUHelpScreen(Screen):
-    if sz_w == 1920:
-        skin = """
-        <screen name="SSUHelpScreen" position="center,170" size="1200,820" title="Service Scan Updates">
-            <widget name="help" position="20,5" size="1100,780" font="Regular;30" />
-        </screen>"""
-    else:
-        skin = """
-        <screen name="SSUHelpScreen" position="center,120" size="800,530" title="Service Scan Updates">
-            <widget name="help" position="10,5" size="760,500" font="Regular;21" />
-        </screen>"""
+                    provdata = []
+                    for tmpdata in line.split(','):
+                        psdata = tmpdata.split(':')
+                        if psdata[0] == "p":
+                            self.services[service_ref]['provider'] = psdata[1]
+                        elif len(psdata) > 1:
+                            psdata[1] = re.sub("^0+", "", psdata[1])
+                            provdata.append({psdata[0]: psdata[1]})
+                    self.services[service_ref]['provider_data'] = provdata
+                    tmp = []
+                else:
+                    tmp.append(line)
 
-    def __init__(self, session):
-        Screen.__init__(self, session)
-        self.session = session
+    def getServiceBySRef(self, service_ref):
+        return self.services.get(service_ref)
 
-        self["help"] = ScrollLabel("")
+    def getServices(self):
+        return self.services
 
-        self["setupActions"] = ActionMap(
-            ["SetupActions", "ColorActions"],
-            {
-                "red": self.close,
-                "cancel": self.close,
-                "ok": self.close,
-            },
-            -2
-        )
+    @staticmethod
+    def _get_service_type(service_ref):
+        parts = service_ref.split(':')
+        if len(parts) > 2 and parts[2]:
+            try:
+                return int(parts[2], 16)
+            except ValueError:
+                return None
+        return None
 
-        self.onLayoutFinish.append(self.layoutFinished)
+    @classmethod
+    def isVideoService(cls, service_ref):
+        service_type = cls._get_service_type(service_ref)
+        return service_type in (1, 4, 5, 6, 11, 22, 23, 24, 17, 25, 26, 27, 28, 29, 30, 31)
 
-    def layoutFinished(self):
-        help_txt = _("This plugin creates a favorites bouquet (for TV and Radio) with the name 'Service Scan Updates'.\n")
-        help_txt += _("All new services found during the scan are inserted there together with a marker.\n")
-        help_txt += _("This allows you to quickly and clearly see which new services were found,\n")
-        help_txt += _("and you can add individual services to your own Favorites bouquets as usual.\n\n")
-        help_txt += _("In order for the 'Service Scan Updates' bouquet to be displayed,\n")
-        help_txt += _("the option 'Allow multiple bouquets' must be activated in the system settings of the box.")
-        self["help"].setText(help_txt)
+    @classmethod
+    def isRadioService(cls, service_ref):
+        service_type = cls._get_service_type(service_ref)
+        return service_type in (2, 10)
+
+    @classmethod
+    def isDataService(cls, service_ref):
+        service_type = cls._get_service_type(service_ref)
+        return service_type in (3, 12, 13, 14, 15, 16, 128, 129)
+
+    @staticmethod
+    def hasNewFlag(service_ref):
+
+        return bool(eDVBDB.getInstance().getFlag(eServiceReference(str(service_ref))) & FLAG_SERVICE_NEW_FOUND)
